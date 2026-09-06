@@ -1,0 +1,32 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - depguard
+    - funlen
+    - gochecknoglobals
+    - intrange
+    - ireturn
+    - lll
+    - paralleltest
+    - testpackage
+    - thelper
+    - varnamelen
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

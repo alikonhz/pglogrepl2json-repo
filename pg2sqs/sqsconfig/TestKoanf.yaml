@@ -1,0 +1,21 @@
+debug: true
+postgres:
+    numericMode: float
+sqs:
+    baseEndpoint: endpoint1
+    commitTimeColumn: column1
+tables:
+    public.orders:
+        columns:
+            - id
+            - date
+        options:
+            option1: value1
+        queue:
+            delete:
+                name: orderDeleted.fifo
+            insert:
+                name: orderCreated.fifo
+            name: default-name
+            update:
+                name: orderUpdated.fifo

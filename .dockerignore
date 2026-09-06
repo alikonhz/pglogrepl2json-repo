@@ -1,0 +1,13 @@
+.git
+.idea
+.netlify
+
+*.prof
+*.pprof
+*.test
+
+pg2redis/output
+pg2sqs/output
+
+**/.DS_Store
+**/node_modules

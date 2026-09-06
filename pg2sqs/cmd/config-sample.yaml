@@ -1,0 +1,44 @@
+postgres:
+  repl:
+    pub: customers_publication
+    slot: customers_slot
+  conn:
+    database: postgres
+    host: postgres_primary
+    port: 5432
+    user: user
+    password: password
+sqs:
+  # include transaction commit time as a "lastupdated" property in JSON
+  commitTimeColumn: lastupdated
+debug: false # or true
+flushInterval: 500 # milliseconds
+flushWorkers: 100
+statsInterval: 60 # seconds
+maxWriteQueueSize: 100000
+writeTimeout: 10s
+shutdownTimeout: 30s # milliseconds
+retryPolicy:
+  maxRetries: 5
+  # Number of connection errors. The app quits after encountering maxConnectionRetries.
+  # When set to "0" the app would never quit on connection error.
+  maxConnectionRetries: 0
+  initialBackoff: 10s
+  multiplier: 1
+  jitter: 0.4
+  maxBackoff: 20s
+tables:
+  - public.customers:
+      columns: [all] # or list of columns e.g. id, name, active, etc
+      queue:
+        name: customers.fifo
+        # possible value are %schema%, %table%, %xid% (transaction id), $column
+        # "column" must exist and be part of publication
+        # available only for FIFO queues
+#        groupID: ${%table%}-${id}
+#        update:
+#          name: customerUpdated.fifo
+#        insert:
+#          name: customerCreated.fifo
+#        delete:
+#          name: customerDeleted.fifo

@@ -1,0 +1,138 @@
+flushInterval: 100ms
+flushBufferSize: 10
+flushQueueDepth: 8
+flushWorkers: 2
+writeTimeout: 5s
+statsInterval: 30s
+maxWriteQueueSize: 10000
+shutdownTimeout: 10s
+debug: false
+
+postgres:
+  conn:
+    host: postgres
+    port: "5432"
+    database: shop
+    user: postgres
+    password: postgres
+  repl:
+    pub: pg2redis_shop_pub
+    slot: pg2redis_shop_slot
+    owner: app
+    failover: true
+  numericMode: string
+  standByTimeout: 10s
+  receiveTimeout: 30s
+
+redis:
+  conn:
+    host: redis
+    port: "6379"
+    database: "0"
+    password: ""
+
+retryPolicy:
+  maxRetries: 10
+  maxConnectionRetries: 0
+  initialBackoff: 1500ms
+  multiplier: 2
+  jitter: 0.1
+  maxBackoff: 15s
+
+snapshot:
+  mode: onetime
+  batchSize: 100
+  parallelWorkers: 2
+  abortOnError: true
+  queryTimeout: 10s
+  maxWriteQueueSize: 10000
+  config:
+    - name: public.customers
+      type: full
+    - name: public.products
+      type: full
+    - name: public.orders
+      type: full
+    - name: public.order_items
+      type: full
+
+tables:
+  - public.customers:
+      insert:
+        commands:
+          - ["HSET", "customer:{id}", "{pairs:*}"]
+          - ["SADD", "customers:all", "{id}"]
+      update:
+        commands:
+          - ["HSET", "customer:{id}", "{pairs:*}"]
+      delete:
+        commands:
+          - ["DEL", "customer:{id}"]
+          - ["SREM", "customers:all", "{id}"]
+
+  - public.products:
+      insert:
+        commands:
+          - ["HSET", "product:{id}", "{pairs:*}"]
+          - ["SADD", "products:all", "{id}"]
+          - ["ZADD", "products:stock", "{stock_quantity}", "{id}"]
+          - command: ["SADD", "products:active", "{id}"]
+            condition:
+              column: active
+              op: "="
+              value: "true"
+          - command: ["SREM", "products:active", "{id}"]
+            condition:
+              column: active
+              op: "="
+              value: "false"
+      update:
+        commands:
+          - ["HSET", "product:{id}", "{pairs:*}"]
+          - ["ZADD", "products:stock", "{stock_quantity}", "{id}"]
+          - command: ["SADD", "products:active", "{id}"]
+            condition:
+              column: active
+              op: "="
+              value: "true"
+          - command: ["SREM", "products:active", "{id}"]
+            condition:
+              column: active
+              op: "="
+              value: "false"
+      delete:
+        commands:
+          - ["DEL", "product:{id}"]
+          - ["SREM", "products:all", "{id}"]
+          - ["SREM", "products:active", "{id}"]
+          - ["ZREM", "products:stock", "{id}"]
+
+  - public.orders:
+      insert:
+        commands:
+          - ["HSET", "order:{id}", "{pairs:*}"]
+          - ["SADD", "orders:all", "{id}"]
+          - ["SADD", "customer:{customer_id}:orders", "{id}"]
+          - ["XADD", "order_events", "*", "{pairs:id,customer_id,status,total_cents,currency,created_at,updated_at}"]
+          - ["PUBLISH", "order_updates", "{json:id,customer_id,status,total_cents,currency,created_at,updated_at}"]
+      update:
+        commands:
+          - ["HSET", "order:{id}", "{pairs:*}"]
+          - ["XADD", "order_events", "*", "{pairs:id,customer_id,status,total_cents,currency,created_at,updated_at}"]
+          - ["PUBLISH", "order_updates", "{json:id,customer_id,status,total_cents,currency,created_at,updated_at}"]
+      delete:
+        commands:
+          - ["DEL", "order:{id}"]
+          - ["SREM", "orders:all", "{id}"]
+          - ["SREM", "customer:{customer_id}:orders", "{id}"]
+
+  - public.order_items:
+      insert:
+        commands:
+          - ["HSET", "order:{order_id}:items", "{id}", "{json:*}"]
+      update:
+        commands:
+          - ["HSET", "order:{order_id}:items", "{id}", "{json:*}"]
+      delete:
+        commands:
+          - ["HDEL", "order:{order_id}:items", "{id}"]

@@ -1,0 +1,24 @@
+postgres:
+  numericMode: float
+debug: true
+sqs:
+  commitTimeColumn: column1
+retryPolicy:
+  maxRetries: 5
+  initialBackoff: 5
+  multiplier: 2.00
+  jitter: 0.10
+  maxBackoff: 15
+tables:
+  public.orders:
+    columns: [id,date]
+    options:
+      option1: value1
+    queue:
+      name: default-name
+      insert:
+        name: orderCreated.fifo
+      update:
+        name: orderUpdated.fifo
+      delete:
+        name: orderDeleted.fifo

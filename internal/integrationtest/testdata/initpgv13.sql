@@ -1,0 +1,1 @@
+ALTER SYSTEM SET logical_decoding_work_mem = '64kB';

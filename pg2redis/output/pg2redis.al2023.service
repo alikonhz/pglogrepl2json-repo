@@ -1,0 +1,15 @@
+[Unit]
+Description=pg2redis service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=4
+User=ec2-user
+WorkingDirectory=/opt/pg2redis
+ExecStart=/opt/pg2redis/pg2redis
+
+[Install]
+WantedBy=multi-user.target

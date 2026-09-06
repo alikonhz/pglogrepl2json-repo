@@ -1,0 +1,18 @@
+FROM golang:1.26.3-trixie AS builder
+
+ARG BUILD_VERSION="docker debug"
+
+COPY . /workdir
+WORKDIR /workdir
+
+RUN CGO_ENABLED=0 go build -o ./app -ldflags "-s -w -X 'github.com/alikonhz/pglogrepl2json/replicator.Version=${BUILD_VERSION}'" ./pg2sqs/cmd/main.go
+
+FROM gcr.io/distroless/static:nonroot
+COPY --from=builder /workdir/app /bin/app
+
+# noroot user from distroless image
+USER 65532
+
+EXPOSE 8080
+
+ENTRYPOINT ["/bin/app"]
